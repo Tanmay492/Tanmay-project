@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Greedy vs Dijkstra — DAA Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#02020a;--card:#08081a;--card2:#0d0d22;--border:#1a1a40;--border2:#2a2a60;
+  --cyan:#00f0ff;--pink:#ff2060;--gold:#ffd700;--green:#00ffaa;--purple:#c084fc;
+  --orange:#ff7040;--text:#dde6f0;--text2:#8899bb;--text3:#445566;
+}
+html,body{height:100%;background:var(--bg);font-family:'Rajdhani',sans-serif;color:var(--text);overflow:hidden;}
+
+/* animated bg */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%,rgba(0,240,255,.04) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 80%,rgba(255,32,96,.04) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+  animation:bgPulse 8s ease-in-out infinite alternate;
+}
+@keyframes bgPulse{from{opacity:.6}to{opacity:1}}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,.015) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+/* PAGES */
+.page{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .6s ease;}
+.page.active{opacity:1;pointer-events:all;}
+
+/* NAV */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 22px;border-bottom:1px solid var(--border);
+  background:rgba(2,2,10,.85);backdrop-filter:blur(12px);
+  flex-shrink:0;z-index:10;position:relative;
+}
+.nav-logo{
+  font-family:'Orbitron',monospace;font-size:1rem;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-steps{display:flex;gap:6px;}
+.step-pill{
+  font-family:'Share Tech Mono',monospace;font-size:.6rem;
+  padding:3px 12px;border-radius:20px;border:1px solid var(--border2);
+  color:var(--text3);cursor:pointer;transition:all .25s;
+}
+.step-pill.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,240,255,.08);box-shadow:0 0 12px rgba(0,240,255,.15);}
+.step-pill.done{border-color:var(--green);color:var(--green);}
+.nav-tag{font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:3px 12px;border-radius:3px;}
+.tag-g{background:rgba(255,112,64,.15);border:1px solid var(--orange);color:var(--orange);}
+.tag-d{background:rgba(0,240,255,.08);border:1px solid var(--cyan);color:var(--cyan);}
+
+/* ══════════════════════════════════════
+   PAGE 1 — CHOOSE
+   ══════════════════════════════════════ */
+#page1{justify-content:center;align-items:center;padding:16px;}
+.choose-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;}
+.choose-title{
+  font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;text-align:center;
+  background:linear-gradient(90deg,var(--cyan),var(--purple),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:.08em;
+}
+.choose-sub{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--text2);text-align:center;}
+.cards-row{display:flex;gap:20px;align-items:stretch;justify-content:center;width:100%;max-width:860px;}
+
+.algo-card{
+  flex:1;max-width:360px;
+  background:var(--card);
+  border-radius:14px;padding:28px 24px 22px;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:12px;
+  transition:all .4s cubic-bezier(.34,1.56,.64,1);
+  position:relative;overflow:hidden;
+}
+.algo-card::before{content:'';position:absolute;inset:0;border-radius:14px;opacity:0;transition:opacity .3s;}
+.algo-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:14px 14px 0 0;opacity:.5;}
+.card-g{border:1.5px solid rgba(255,112,64,.25);}
+.card-g::before{background:radial-gradient(circle at 50% 0%,rgba(255,112,64,.12),transparent 70%);}
+.card-g::after{background:linear-gradient(90deg,transparent,var(--orange),transparent);}
+.card-g:hover{border-color:var(--orange);box-shadow:0 0 50px rgba(255,112,64,.25),0 20px 60px rgba(0,0,0,.6);transform:translateY(-10px) scale(1.02);}
+.card-g:hover::before{opacity:1;}
+.card-d{border:1.5px solid rgba(0,240,255,.18);}
+.card-d::before{background:radial-gradient(circle at 50% 0%,rgba(0,240,255,.1),transparent 70%);}
+.card-d::after{background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.card-d:hover{border-color:var(--cyan);box-shadow:0 0 50px rgba(0,240,255,.2),0 20px 60px rgba(0,0,0,.6);transform:translateY(-10px) scale(1.02);}
+.card-d:hover::before{opacity:1;}
+
+.card-emoji{font-size:3.8rem;filter:drop-shadow(0 0 18px currentColor);animation:emojiFloat 3s ease-in-out infinite;}
+@keyframes emojiFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(-5deg)}}
+.card-title{font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:900;letter-spacing:.1em;text-align:center;}
+.card-g .card-title{color:var(--orange);}
+.card-d .card-title{color:var(--cyan);}
+.card-desc{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--text2);text-align:center;line-height:1.6;}
+.card-chips{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;}
+.chip{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:2px 8px;border-radius:3px;font-weight:700;}
+.chip-g{background:rgba(255,112,64,.12);border:1px solid rgba(255,112,64,.35);color:var(--orange);}
+.chip-d{background:rgba(0,240,255,.07);border:1px solid rgba(0,240,255,.25);color:var(--cyan);}
+.card-cta{
+  width:100%;padding:11px;border:none;border-radius:8px;
+  font-family:'Orbitron',monospace;font-size:.72rem;font-weight:700;
+  letter-spacing:.08em;cursor:pointer;transition:all .2s;margin-top:6px;
+}
+.cta-g{background:linear-gradient(135deg,#ff7040,#cc3300);color:#fff;}
+.cta-g:hover{box-shadow:0 0 22px rgba(255,112,64,.5);transform:scale(1.03);}
+.cta-d{background:linear-gradient(135deg,#00f0ff,#0099cc);color:#000;}
+.cta-d:hover{box-shadow:0 0 22px rgba(0,240,255,.5);transform:scale(1.03);}
+
+.vs-col{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 4px;}
+.vs-bar{width:1.5px;height:80px;background:linear-gradient(180deg,transparent,var(--pink),transparent);}
+.vs-txt{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:900;color:var(--pink);text-shadow:0 0 20px rgba(255,32,96,.5);}
+
+.bottom-hint{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text3);text-align:center;}
+
+/* ══════════════════════════════════════
+   PAGE 2 — LEARN + GAME
+   ══════════════════════════════════════ */
+#page2{padding:0;overflow:hidden;}
+.p2-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0;overflow:hidden;}
+
+/* LEFT — definition */
+.def-side{
+  border-right:1px solid var(--border);
+  overflow-y:auto;padding:14px 18px;
+  scrollbar-width:thin;scrollbar-color:var(--border2) transparent;
+}
+.def-side::-webkit-scrollbar{width:4px;}
+.def-side::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+.def-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.def-head-icon{font-size:2rem;}
+.def-head-title{font-family:'Orbitron',monospace;font-size:1rem;font-weight:700;letter-spacing:.06em;}
+.def-head-sub{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text2);margin-top:2px;}
+
+.def-block{margin-bottom:13px;}
+.def-block-title{
+  font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:.14em;
+  color:var(--text3);margin-bottom:7px;padding-bottom:4px;
+  border-bottom:1px solid var(--border);text-transform:uppercase;
+}
+.def-text{font-size:.85rem;color:var(--text2);line-height:1.65;}
+.def-text b{color:var(--text);}
+.def-text em{color:var(--gold);font-style:normal;font-weight:600;}
+
+.step-list{display:flex;flex-direction:column;gap:7px;margin-top:4px;}
+.step-row{display:flex;gap:10px;align-items:flex-start;}
+.step-badge{
+  font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;
+  min-width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.step-txt{font-size:.82rem;color:var(--text2);line-height:1.5;}
+.step-txt b{color:var(--text);}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.info-tag{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:2px 8px;border-radius:3px;border:1px solid;font-weight:700;}
+
+.pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+.pros{background:rgba(0,255,170,.04);border:1px solid rgba(0,255,170,.18);border-radius:6px;padding:8px 10px;}
+.cons{background:rgba(255,32,96,.04);border:1px solid rgba(255,32,96,.18);border-radius:6px;padding:8px 10px;}
+.pc-title{font-family:'Orbitron',monospace;font-size:.56rem;font-weight:700;margin-bottom:5px;letter-spacing:.1em;}
+.pros .pc-title{color:var(--green);}
+.cons .pc-title{color:var(--pink);}
+.pc-item{font-size:.75rem;color:var(--text2);margin:2px 0;padding-left:10px;position:relative;}
+.pc-item::before{content:'→';position:absolute;left:0;font-size:.6rem;}
+
+/* RIGHT — game */
+.game-side{display:flex;flex-direction:column;padding:12px 14px;gap:8px;overflow:hidden;background:rgba(0,0,0,.15);}
+.game-top{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.game-title-txt{font-family:'Orbitron',monospace;font-size:.78rem;font-weight:700;letter-spacing:.1em;}
+.score-row{display:flex;gap:7px;}
+.score-pill{font-family:'Share Tech Mono',monospace;font-size:.68rem;padding:2px 9px;border-radius:3px;border:1px solid var(--border2);}
+
+.game-canvas-wrap{
+  flex:1;min-height:0;position:relative;
+  background:rgba(0,0,0,.35);border:1px solid var(--border);
+  border-radius:8px;overflow:hidden;
+}
+#gameCanvas{width:100%;height:100%;display:block;}
+.game-overlay-msg{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;
+  background:rgba(2,2,10,.8);
+  font-family:'Orbitron',monospace;text-align:center;
+  opacity:0;transition:opacity .4s;pointer-events:none;
+}
+.game-overlay-msg.show{opacity:1;pointer-events:all;}
+.overlay-emoji{font-size:3rem;}
+.overlay-msg-title{font-size:1.1rem;font-weight:700;}
+.overlay-msg-sub{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--text2);}
+.overlay-msg-btn{margin-top:8px;padding:8px 24px;border-radius:6px;border:none;font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;cursor:pointer;}
+
+.game-btns{display:flex;gap:6px;flex-shrink:0;}
+.g-btn{
+  flex:1;padding:8px;border-radius:5px;border:1px solid var(--border2);
+  background:rgba(255,255,255,.03);color:var(--text2);
+  font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.g-btn:hover{color:var(--text);border-color:var(--border);}
+.g-btn.primary{border-color:var(--cyan);color:var(--cyan);background:rgba(0,240,255,.07);}
+.g-btn.primary:hover{box-shadow:0 0 12px rgba(0,240,255,.2);}
+.g-btn.orange{border-color:var(--orange);color:var(--orange);background:rgba(255,112,64,.07);}
+
+.game-info{
+  font-family:'Share Tech Mono',monospace;font-size:.64rem;
+  color:var(--text3);text-align:center;flex-shrink:0;min-height:16px;
+}
+
+/* page nav */
+.page-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 18px;border-top:1px solid var(--border);
+  background:rgba(2,2,10,.7);flex-shrink:0;
+}
+.pnav-btn{
+  padding:6px 18px;border-radius:5px;border:1px solid var(--border2);
+  background:rgba(255,255,255,.03);color:var(--text2);
+  font-family:'Orbitron',monospace;font-size:.62rem;font-weight:700;
+  cursor:pointer;transition:all .2s;letter-spacing:.06em;
+}
+.pnav-btn:hover{color:var(--text);border-color:var(--border);}
+.pnav-btn.primary{border-color:var(--cyan);color:var(--cyan);background:rgba(0,240,255,.07);}
+.pnav-btn.primary:hover{box-shadow:0 0 14px rgba(0,240,255,.2);}
+.page-ind{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text3);}
+
+/* ══════════════════════════════════════
+   PAGE 3 — COMPLEXITY
+   ══════════════════════════════════════ */
+#page3{overflow:hidden;}
+.p3-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;padding:10px;min-height:0;}
+.cc{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px;
+  display:flex;flex-direction:column;gap:6px;
+  position:relative;overflow:hidden;
+}
+.cc::after{content:'';position:absolute;top:0;left:0;width:3px;bottom:0;border-radius:8px 0 0 8px;}
+.cc-g::after{background:var(--orange);}
+.cc-d::after{background:var(--cyan);}
+.cc-cmp::after{background:var(--purple);}
+.cc-tips::after{background:var(--gold);}
+.cc-title{font-family:'Orbitron',monospace;font-size:.68rem;font-weight:700;letter-spacing:.1em;display:flex;align-items:center;gap:8px;}
+.chart-box{flex:1;min-height:0;position:relative;}
+canvas.ch{width:100%;height:100%;display:block;}
+
+/* compare table */
+.cmp-tbl{width:100%;border-collapse:collapse;font-size:.76rem;}
+.cmp-tbl th{font-family:'Orbitron',monospace;font-size:.54rem;letter-spacing:.08em;color:var(--text3);padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);}
+.cmp-tbl td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text2);}
+.cmp-tbl tr:last-child td{border-bottom:none;}
+.cmp-tbl td:first-child{color:var(--text);font-weight:600;font-size:.72rem;}
+.val-g{color:var(--orange);font-weight:700;}
+.val-d{color:var(--cyan);font-weight:700;}
+.val-ok{color:var(--green);font-weight:700;}
+.val-warn{color:var(--gold);font-weight:700;}
+.val-bad{color:var(--pink);font-weight:700;}
+
+/* tips */
+.tips-list{display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--border2) transparent;}
+.tip-item{background:rgba(0,0,0,.3);border-radius:5px;padding:7px 10px;border:1px solid var(--border);}
+.tip-q{font-size:.76rem;color:var(--text);font-weight:600;margin-bottom:2px;}
+.tip-a{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text3);line-height:1.5;}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ PAGE 1 ════════════════ -->
+<div class="page active" id="page1">
+  <nav>
+    <span class="nav-logo">📡 ALGO EXPLORER</span>
+    <div class="nav-steps">
+      <span class="step-pill active" onclick="goPage(1)">① Choose</span>
+      <span class="step-pill" onclick="goPage(2)">② Learn + Play</span>
+      <span class="step-pill" onclick="goPage(3)">③ Complexity</span>
+    </div>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:.6rem;background:var(--pink);color:#fff;padding:3px 12px;border-radius:2px;">DAA · Ragvendra Sir</span>
+  </nav>
+
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;padding:20px;position:relative;z-index:1;">
+    <div class="choose-title">CHOOSE YOUR ALGORITHM</div>
+    <div class="choose-sub">Select one to explore definition, play a game, and study complexity</div>
+
+    <div class="cards-row">
+      <!-- GREEDY -->
+      <div class="algo-card card-g" onclick="selectAlgo('greedy')">
+        <div class="card-emoji" style="color:var(--orange)">🤑</div>
+        <div class="card-title">GREEDY</div>
+        <div class="card-desc">"Always pick the best option<br>available <b>right now.</b><br>Fast — but not always perfect."</div>
+        <div class="card-chips">
+          <span class="chip chip-g">Local Optimal</span>
+          <span class="chip chip-g">No Backtrack</span>
+          <span class="chip chip-g">Fast O(n log n)</span>
+          <span class="chip chip-g">Coin Change</span>
+          <span class="chip chip-g">Huffman</span>
+          <span class="chip chip-g">Activity Select</span>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text3);text-align:center;padding:4px 0;border-top:1px solid rgba(255,112,64,.15);width:100%;margin-top:4px;">
+          🎮 GAME: Coin Change Challenge
+        </div>
+        <button class="card-cta cta-g">🤑 &nbsp;EXPLORE GREEDY →</button>
+      </div>
+
+      <div class="vs-col">
+        <div class="vs-bar"></div>
+        <div class="vs-txt">VS</div>
+        <div class="vs-bar"></div>
+      </div>
+
+      <!-- DIJKSTRA -->
+      <div class="algo-card card-d" onclick="selectAlgo('dijkstra')">
+        <div class="card-emoji" style="color:var(--cyan)">⚖️</div>
+        <div class="card-title">DIJKSTRA'S</div>
+        <div class="card-desc">"Always expand the cheapest<br>known path.<br><b>Guaranteed shortest path.</b>"</div>
+        <div class="card-chips">
+          <span class="chip chip-d">Global Optimal</span>
+          <span class="chip chip-d">Priority Queue</span>
+          <span class="chip chip-d">O((V+E)logV)</span>
+          <span class="chip chip-d">GPS / Maps</span>
+          <span class="chip chip-d">Network Routing</span>
+          <span class="chip chip-d">Shortest Path</span>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--text3);text-align:center;padding:4px 0;border-top:1px solid rgba(0,240,255,.12);width:100%;margin-top:4px;">
+          🎮 GAME: Graph Shortest Path
+        </div>
+        <button class="card-cta cta-d">⚖️ &nbsp;EXPLORE DIJKSTRA →</button>
+      </div>
+    </div>
+
+    <div class="bottom-hint">↓ &nbsp;After choosing: Definition → Interactive Game → Complexity Analysis</div>
+  </div>
+</div>
+
+<!-- ════════════════ PAGE 2 ════════════════ -->
+<div class="page" id="page2">
+  <nav>
+    <span class="nav-logo">📡 ALGO EXPLORER</span>
+    <div class="nav-steps">
+      <span class="step-pill done" onclick="goPage(1)">① Choose ✓</span>
+      <span class="step-pill active">② Learn + Play</span>
+      <span class="step-pill" onclick="goPage(3)">③ Complexity</span>
+    </div>
+    <span class="nav-tag" id="p2tag"></span>
+  </nav>
+
+  <div class="p2-grid">
+    <!-- DEF SIDE -->
+    <div class="def-side" id="defSide"></div>
+
+    <!-- GAME SIDE -->
+    <div class="game-side">
+      <div class="game-top">
+        <div class="game-title-txt" id="gameTitle">🎮 GAME</div>
+        <div class="score-row">
+          <span class="score-pill" style="color:var(--gold)">Score: <b id="scoreVal">0</b></span>
+          <span class="score-pill" style="color:var(--green)">Level: <b id="levelVal">1</b></span>
+          <span class="score-pill" style="color:var(--pink)">Lives: <b id="livesVal">3</b></span>
+        </div>
+      </div>
+      <div class="game-canvas-wrap">
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-overlay-msg" id="gameMsg">
+          <div class="overlay-emoji" id="msgEmoji">🎮</div>
+          <div class="overlay-msg-title" id="msgTitle" style="color:var(--cyan)">READY!</div>
+          <div class="overlay-msg-sub" id="msgSub">Click START to begin</div>
+          <button class="overlay-msg-btn" id="msgBtn" style="background:var(--cyan);color:#000" onclick="hideOverlay()">START GAME</button>
+        </div>
+      </div>
+      <div class="game-btns">
+        <button class="g-btn primary" id="startBtn" onclick="startGame()">▶ Start</button>
+        <button class="g-btn" onclick="resetGame()">⟳ Reset</button>
+        <button class="g-btn" id="hintBtn" onclick="giveHint()">💡 Hint</button>
+        <button class="g-btn" id="autoBtn" onclick="autoSolve()">⚡ Auto</button>
+      </div>
+      <div class="game-info" id="gameInfo">Click Start to play!</div>
+    </div>
+  </div>
+
+  <div class="page-nav">
+    <button class="pnav-btn" onclick="goPage(1)">← Choose</button>
+    <span class="page-ind">Page 2 / 3 — Learn &amp; Play</span>
+    <button class="pnav-btn primary" onclick="goPage(3)">Complexity →</button>
+  </div>
+</div>
+
+<!-- ════════════════ PAGE 3 ════════════════ -->
+<div class="page" id="page3">
+  <nav>
+    <span class="nav-logo">📡 ALGO EXPLORER</span>
+    <div class="nav-steps">
+      <span class="step-pill done" onclick="goPage(1)">① Choose ✓</span>
+      <span class="step-pill done" onclick="goPage(2)">② Learn ✓</span>
+      <span class="step-pill active">③ Complexity</span>
+    </div>
+    <span class="nav-tag" id="p3tag"></span>
+  </nav>
+
+  <div class="p3-grid">
+    <div class="cc cc-g">
+      <div class="cc-title"><span>🤑</span><span id="cc1title">Greedy — Time Complexity</span></div>
+      <div class="chart-box"><canvas class="ch" id="chartTime"></canvas></div>
+    </div>
+    <div class="cc cc-d">
+      <div class="cc-title"><span>⚖️</span><span>Dijkstra — Space Analysis</span></div>
+      <div class="chart-box"><canvas class="ch" id="chartSpace"></canvas></div>
+    </div>
+    <div class="cc cc-cmp">
+      <div class="cc-title"><span>🆚</span><span>Side-by-Side Comparison</span></div>
+      <table class="cmp-tbl"><thead><tr><th>Property</th><th>🤑 Greedy</th><th>⚖️ Dijkstra</th></tr></thead>
+      <tbody id="cmpBody"></tbody></table>
+    </div>
+    <div class="cc cc-tips">
+      <div class="cc-title"><span>🎓</span><span>Teacher Will Ask These!</span></div>
+      <div class="tips-list" id="tipsList"></div>
+    </div>
+  </div>
+
+  <div class="page-nav">
+    <button class="pnav-btn" onclick="goPage(2)">← Learn</button>
+    <span class="page-ind">Page 3 / 3 — Complexity Analysis</span>
+    <button class="pnav-btn primary" onclick="goPage(1)">🔄 Start Over</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════ */
+let selectedAlgo = 'greedy';
+let score = 0, level = 1, lives = 3;
+let gameActive = false;
+let autoTimer = null;
+
+/* ══════════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════════ */
+function goPage(n) {
+  document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('active',i+1===n));
+  document.querySelectorAll('.step-pill').forEach((s,i)=>s.classList.toggle('active',i+1===n));
+  if(n===2) buildPage2();
+  if(n===3){ setTimeout(buildPage3,100); }
+}
+function selectAlgo(a){ selectedAlgo=a; goPage(2); }
+
+/* ══════════════════════════════════════════
+   ALGO DATA
+   ══════════════════════════════════════════ */
+const DATA = {
+  greedy:{
+    icon:'🤑', color:'#ff7040', name:'GREEDY ALGORITHM',
+    tag:'Local Optimal · Fast · Not always perfect',
+    what:`A <b>Greedy Algorithm</b> makes decisions by always choosing the option that looks <b>best at this exact moment</b>, without considering how this affects future steps.<br><br>
+Think of it like eating the biggest piece of pizza first — great strategy right now, but maybe others needed it! 😂`,
+    when:`Greedy works when the problem has the <b>Greedy Choice Property</b>: making the locally optimal choice at each step leads to a globally optimal solution. <em>This is NOT always true!</em>`,
+    steps:[
+      {n:'1',t:'<b>Look</b> at all choices available right now'},
+      {n:'2',t:'<b>Pick the best one</b> by your greedy rule (biggest, cheapest, earliest...)'},
+      {n:'3',t:'<b>Commit</b> — add to solution, NO going back!'},
+      {n:'4',t:'<b>Repeat</b> with remaining choices'},
+      {n:'5',t:'<b>Done!</b> May or may not be globally optimal'},
+    ],
+    examples:['Coin Change — pick largest coin ≤ remaining','Activity Selection — pick earliest ending activity','Huffman Coding — merge two smallest frequencies','Fractional Knapsack — pick highest value/weight ratio','Prim\'s MST — pick cheapest edge to new vertex'],
+    realworld:['File compression (Huffman)','CPU Scheduling','Approximate routing','Network design'],
+    pros:['Very fast — O(n log n)','Simple to code','Low memory','Exact for some problems'],
+    cons:['NOT always optimal','Cannot backtrack','Need to PROVE it works','Fails on 0/1 Knapsack'],
+  },
+  dijkstra:{
+    icon:'⚖️', color:'#00f0ff', name:"DIJKSTRA'S ALGORITHM",
+    tag:'Global Optimal · Priority Queue · Guaranteed shortest',
+    what:`<b>Dijkstra's Algorithm</b> finds the <b>shortest path</b> from a source node to all other nodes in a weighted graph (all weights ≥ 0).<br><br>
+It works like a careful explorer who always visits the <b>nearest unvisited city</b> first, updating known distances as it goes.`,
+    when:`Use Dijkstra when you need the <b>guaranteed shortest path</b> on a weighted graph. It uses a <b>Min-Heap (Priority Queue)</b> to always expand the cheapest unvisited node. <em>Cannot handle negative weights!</em>`,
+    steps:[
+      {n:'1',t:'Set <b>source distance = 0</b>, all others = ∞'},
+      {n:'2',t:'Add source to <b>Priority Queue</b> (sorted by distance)'},
+      {n:'3',t:'<b>Pop minimum distance node</b> from queue'},
+      {n:'4',t:'<b>Relax neighbours</b>: if new path cheaper → update!'},
+      {n:'5',t:'<b>Repeat</b> until queue empty or destination reached'},
+    ],
+    examples:['GPS shortest road route','Internet OSPF routing protocol','Degrees of separation in social networks','Cheapest flight routes between cities','Game AI pathfinding'],
+    realworld:['Google Maps / GPS','Network routing (OSPF)','Airline booking','Game AI'],
+    pros:['ALWAYS shortest path','Works on weighted graphs','Handles all destinations','Proven correct'],
+    cons:['Fails with negative edges','More complex code','Needs priority queue','Slower than Greedy'],
+  },
+};
+
+/* ══════════════════════════════════════════
+   PAGE 2 BUILD
+   ══════════════════════════════════════════ */
+function buildPage2(){
+  const d = DATA[selectedAlgo];
+  // Tag
+  const tag = document.getElementById('p2tag');
+  tag.textContent = d.icon+' '+d.name;
+  tag.className = 'nav-tag '+(selectedAlgo==='greedy'?'tag-g':'tag-d');
+
+  // Definition
+  document.getElementById('defSide').innerHTML = `
+    <div class="def-head">
+      <div class="def-head-icon">${d.icon}</div>
+      <div>
+        <div class="def-head-title" style="color:${d.color}">${d.name}</div>
+        <div class="def-head-sub">${d.tag}</div>
+      </div>
+    </div>
+
+    <div class="def-block">
+      <div class="def-block-title">📖 What is it?</div>
+      <div class="def-text">${d.what}</div>
+    </div>
+
+    <div class="def-block">
+      <div class="def-block-title">🔑 When to use?</div>
+      <div class="def-text">${d.when}</div>
+    </div>
+
+    <div class="def-block">
+      <div class="def-block-title">📋 How it works — Step by Step</div>
+      <div class="step-list">
+        ${d.steps.map(s=>`
+          <div class="step-row">
+            <div class="step-badge" style="background:${d.color}22;color:${d.color};border:1px solid ${d.color}44">${s.n}</div>
+            <div class="step-txt">${s.t}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="def-block">
+      <div class="def-block-title">💡 Real Examples</div>
+      ${d.examples.map(e=>`<div style="font-size:.8rem;color:var(--text2);padding:2px 0;padding-left:12px;position:relative;"><span style="position:absolute;left:0;color:${d.color};font-size:.7rem">▸</span>${e}</div>`).join('')}
+    </div>
+
+    <div class="def-block">
+      <div class="def-block-title">🌍 Real World Uses</div>
+      <div class="tag-row">
+        ${d.realworld.map(r=>`<span class="info-tag" style="border-color:${d.color}44;color:${d.color};background:${d.color}10">${r}</span>`).join('')}
+      </div>
+    </div>
+
+    <div class="def-block">
+      <div class="def-block-title">⚖️ Pros &amp; Cons</div>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pc-title">✅ PROS</div>
+          ${d.pros.map(p=>`<div class="pc-item">${p}</div>`).join('')}
+        </div>
+        <div class="cons">
+          <div class="pc-title">❌ CONS</div>
+          ${d.cons.map(c=>`<div class="pc-item">${c}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  // Setup game
+  score=0; level=1; lives=3; gameActive=false;
+  updateScoreboard();
+  clearTimeout(autoTimer);
+  if(selectedAlgo==='greedy') setupGreedyGame();
+  else setupDijkstraGame();
+}
+
+function updateScoreboard(){
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('levelVal').textContent = level;
+  document.getElementById('livesVal').textContent = lives;
+}
+
+/* ══════════════════════════════════════════
+   GREEDY GAME — Coin Change
+   Full working: click coins, reach target
+   ══════════════════════════════════════════ */
+const COIN_TARGETS = [36,47,63,82,99,41,56,78,94,67];
+const COINS = [25,10,5,2,1];
+let greedyState = {};
+
+function setupGreedyGame(){
+  document.getElementById('gameTitle').textContent = '🤑 GREEDY COIN GAME';
+  document.getElementById('gameInfo').textContent  = 'Click coins to reach the target! Use FEWEST coins (greedy = largest first)';
+  document.getElementById('hintBtn').style.display = '';
+  document.getElementById('autoBtn').style.display = '';
+
+  greedyState = {
+    target: COIN_TARGETS[(level-1)%COIN_TARGETS.length],
+    selected: [],
+    total: 0,
+    done: false,
+    message: '',
+    messageColor: '#fff',
+  };
+
+  showOverlay('🪙','COIN CHANGE CHALLENGE',`Reach target: ${greedyState.target}¢ using FEWEST coins!`,'var(--gold)','▶ Start');
+  renderGreedy();
+}
+
+function renderGreedy(){
+  const canvas = document.getElementById('gameCanvas');
+  const rect   = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = rect.width  || 500;
+  canvas.height = rect.height || 300;
+  const W=canvas.width, H=canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const gs = greedyState;
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'rgba(8,8,26,.9)'); bg.addColorStop(1,'rgba(2,2,10,.95)');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // TARGET display
+  ctx.font = 'bold 14px Orbitron, monospace';
+  ctx.fillStyle = '#ff7040';
+  ctx.textAlign = 'left';
+  ctx.fillText('🎯 TARGET:', 16, 28);
+  ctx.font = 'bold 28px Orbitron, monospace';
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText(gs.target+'¢', 130, 32);
+
+  // TOTAL display
+  ctx.font = 'bold 14px Orbitron, monospace';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'right';
+  ctx.fillText('TOTAL: '+gs.total+'¢  |  Coins: '+gs.selected.length, W-16, 28);
+
+  // Progress bar
+  const barX=16, barY=46, barW=W-32, barH=10;
+  ctx.fillStyle='rgba(255,255,255,.07)';
+  ctx.beginPath(); ctx.roundRect(barX,barY,barW,barH,5); ctx.fill();
+  const pct = Math.min(gs.total/gs.target,1);
+  if(pct>0){
+    const barGrad = ctx.createLinearGradient(barX,0,barX+barW*pct,0);
+    barGrad.addColorStop(0,'#ff7040'); barGrad.addColorStop(1,'#00ffaa');
+    ctx.fillStyle=barGrad;
+    ctx.beginPath(); ctx.roundRect(barX,barY,barW*pct,barH,5); ctx.fill();
+  }
+  // progress text
+  ctx.font='10px Share Tech Mono'; ctx.fillStyle='#475566'; ctx.textAlign='center';
+  ctx.fillText(Math.round(pct*100)+'%', W/2, barY+barH-1);
+
+  // COIN BUTTONS
+  const coinW = Math.min((W-32)/(COINS.length)-8, 80);
+  const coinR = Math.min(coinW*0.44, 38);
+  const coinY = H*0.52;
+  const totalCW = COINS.length*(coinW+8)-8;
+  const startX  = (W-totalCW)/2;
+
+  const coinColors   = {25:'#ffd700',10:'#e8e8e8',5:'#cd7f32',2:'#aaaaff',1:'#b87333'};
+  const coinGlowClrs = {25:'rgba(255,215,0,.6)',10:'rgba(220,220,220,.4)',5:'rgba(205,127,50,.5)',2:'rgba(150,150,255,.5)',1:'rgba(184,115,51,.4)'};
+
+  COINS.forEach((coin,i)=>{
+    const cx = startX + i*(coinW+8) + coinW/2;
+    const cy = coinY;
+    const remaining = gs.target - gs.total;
+    const canUse = coin <= remaining && !gs.done;
+
+    // Shadow
+    ctx.shadowColor = canUse ? coinGlowClrs[coin] : 'transparent';
+    ctx.shadowBlur  = canUse ? 18 : 0;
+
+    // Coin circle
+    const grad = ctx.createRadialGradient(cx-coinR*.3,cy-coinR*.3,coinR*.1,cx,cy,coinR);
+    grad.addColorStop(0, canUse ? lighten(coinColors[coin],60) : '#2a2a3a');
+    grad.addColorStop(1, canUse ? coinColors[coin] : '#1a1a28');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx,cy,coinR,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+
+    // Coin edge
+    ctx.strokeStyle = canUse ? coinColors[coin] : '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx,cy,coinR,0,Math.PI*2); ctx.stroke();
+
+    // Coin label
+    ctx.fillStyle = canUse ? '#000' : '#444';
+    ctx.font = `bold ${Math.max(11,coinR*.35)}px Rajdhani`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(coin+'¢',cx,cy);
+
+    // Used count
+    const used = gs.selected.filter(c=>c===coin).length;
+    if(used>0){
+      ctx.fillStyle='#00ffaa';
+      ctx.font='bold 11px Share Tech Mono';
+      ctx.textBaseline='alphabetic';
+      ctx.fillText('×'+used, cx, cy+coinR+16);
+    }
+
+    // Label below
+    ctx.fillStyle = canUse ? coinColors[coin] : '#333';
+    ctx.font='10px Share Tech Mono';
+    ctx.fillText(coin+'¢', cx, cy+coinR+28);
+  });
+  ctx.textBaseline='alphabetic';
+
+  // Selected coins trail
+  if(gs.selected.length>0){
+    const trail = gs.selected.map(c=>c+'¢').join(' + ');
+    ctx.font='11px Share Tech Mono';
+    ctx.fillStyle='#475566';
+    ctx.textAlign='center';
+    ctx.fillText('Path: '+trail+' = '+gs.total+'¢', W/2, H-48);
+  }
+
+  // Optimal hint
+  const opt = greedyOptimal(gs.target);
+  ctx.font='10px Share Tech Mono';
+  ctx.fillStyle='#2a3a4a';
+  ctx.textAlign='center';
+  ctx.fillText('Optimal: '+opt+' coin'+(opt!==1?'s':''), W/2, H-34);
+
+  // Message
+  if(gs.message){
+    ctx.font='bold 15px Orbitron';
+    ctx.fillStyle=gs.messageColor;
+    ctx.textAlign='center';
+    ctx.fillText(gs.message, W/2, H-14);
+  }
+
+  // Store coin hit areas for click
+  greedyState._coinAreas = COINS.map((coin,i)=>({
+    coin,
+    cx: startX+i*(coinW+8)+coinW/2,
+    cy: coinY, r: coinR
+  }));
+}
+
+function greedyOptimal(t){
+  let rem=t, n=0;
+  for(const c of COINS){ n+=Math.floor(rem/c); rem%=c; }
+  return n;
+}
+
+function lighten(hex,amt){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  r=Math.min(255,r+amt); g=Math.min(255,g+amt); b=Math.min(255,b+amt);
+  return `rgb(${r},${g},${b})`;
+}
+
+// Greedy click handler
+function handleGreedyClick(e){
+  if(!gameActive || greedyState.done) return;
+  const canvas=document.getElementById('gameCanvas');
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+  const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+  const areas = greedyState._coinAreas||[];
+  for(const a of areas){
+    if(Math.hypot(mx-a.cx,my-a.cy)<a.r){
+      clickCoin(a.coin); break;
+    }
+  }
+}
+
+function clickCoin(coin){
+  const gs=greedyState;
+  const remaining=gs.target-gs.total;
+  if(coin>remaining){
+    gs.message='❌ '+coin+'¢ exceeds remaining '+remaining+'¢!';
+    gs.messageColor='#ff2060';
+    renderGreedy();
+    setTimeout(()=>{ gs.message=''; renderGreedy(); },1200);
+    return;
+  }
+  gs.selected.push(coin);
+  gs.total+=coin;
+  if(gs.total===gs.target){
+    gs.done=true;
+    const opt=greedyOptimal(gs.target);
+    const isOpt=gs.selected.length===opt;
+    gs.message = isOpt ? '✅ PERFECT! '+gs.selected.length+' coins — GREEDY OPTIMAL!' : '✓ Done in '+gs.selected.length+' coins (optimal: '+opt+')';
+    gs.messageColor = isOpt ? '#00ffaa' : '#ffd700';
+    score += isOpt ? 150 : 80;
+    updateScoreboard();
+    renderGreedy();
+    setTimeout(()=>{
+      if(isOpt){ level++; showOverlay('🏆','PERFECT!','Greedy optimal! Next level...','var(--green)','Next Level →'); }
+      else { showOverlay('✅','DONE!',`Used ${gs.selected.length} coins. Optimal was ${opt}. Try again for perfect score!`,'var(--gold)','Try Again'); }
+    },1200);
+  } else {
+    renderGreedy();
+  }
+}
+
+function giveHint(){
+  if(!gameActive) return;
+  if(selectedAlgo==='greedy'){
+    const rem=greedyState.target-greedyState.total;
+    const best=COINS.find(c=>c<=rem)||1;
+    document.getElementById('gameInfo').textContent='💡 Hint: Pick '+best+'¢ next! (Greedy = always pick largest possible)';
+  } else {
+    dijkstraHint();
+  }
+}
+
+function autoSolve(){
+  if(!gameActive) return;
+  if(selectedAlgo==='greedy') autoGreedy();
+  else autoDijkstra();
+}
+
+function autoGreedy(){
+  const gs=greedyState;
+  if(gs.done) return;
+  clearTimeout(autoTimer);
+  function step(){
+    if(gs.done) return;
+    const rem=gs.target-gs.total;
+    const coin=COINS.find(c=>c<=rem)||1;
+    clickCoin(coin);
+    if(!gs.done) autoTimer=setTimeout(step,400);
+  }
+  step();
+}
+
+/* ══════════════════════════════════════════
+   DIJKSTRA GAME — Graph shortest path
+   Fully working: click nodes, find path
+   ══════════════════════════════════════════ */
+// Graph definition
+const GRAPH = {
+  nodes:{
+    A:{label:'A',x:.12,y:.5},
+    B:{label:'B',x:.32,y:.2},
+    C:{label:'C',x:.32,y:.8},
+    D:{label:'D',x:.55,y:.35},
+    E:{label:'E',x:.55,y:.72},
+    F:{label:'F',x:.76,y:.2},
+    G:{label:'G',x:.76,y:.65},
+    H:{label:'H',x:.92,y:.45},
+  },
+  edges:[
+    {u:'A',v:'B',w:4},{u:'A',v:'C',w:2},
+    {u:'B',v:'D',w:5},{u:'B',v:'C',w:1},
+    {u:'C',v:'E',w:8},{u:'C',v:'D',w:8},
+    {u:'D',v:'F',w:2},{u:'D',v:'E',w:2},
+    {u:'E',v:'G',w:3},
+    {u:'F',v:'H',w:3},{u:'F',v:'G',w:1},
+    {u:'G',v:'H',w:2},
+  ]
+};
+// Adjacency
+const ADJ = {};
+for(const k of Object.keys(GRAPH.nodes)) ADJ[k]={};
+for(const e of GRAPH.edges){ ADJ[e.u][e.v]=e.w; ADJ[e.v][e.u]=e.w; }
+
+let dijkState = {};
+
+function runDijkstra(src,dst){
+  const dist={},prev={},visited=new Set(),pq=[];
+  for(const k of Object.keys(GRAPH.nodes)) dist[k]=Infinity;
+  dist[src]=0; pq.push({n:src,d:0});
+  while(pq.length){
+    pq.sort((a,b)=>a.d-b.d);
+    const {n}=pq.shift();
+    if(visited.has(n)) continue;
+    visited.add(n);
+    for(const [nb,w] of Object.entries(ADJ[n])){
+      if(dist[n]+w<dist[nb]){ dist[nb]=dist[n]+w; prev[nb]=n; pq.push({n:nb,d:dist[nb]}); }
+    }
+  }
+  // reconstruct path
+  const path=[];
+  let cur=dst;
+  while(cur){ path.unshift(cur); cur=prev[cur]; }
+  return {dist,prev,path,cost:dist[dst]};
+}
+
+function setupDijkstraGame(){
+  document.getElementById('gameTitle').textContent = '⚖️ DIJKSTRA PATH GAME';
+  document.getElementById('gameInfo').textContent  = 'Find shortest path from A to H by clicking connected nodes in order!';
+
+  const result = runDijkstra('A','H');
+  dijkState = {
+    src:'A', dst:'H',
+    playerPath:['A'],
+    optimalPath: result.path,
+    optimalCost: result.cost,
+    allDist: result.dist,
+    done:false,
+    message:'',
+    messageColor:'#fff',
+    highlight:null,
+  };
+
+  showOverlay('⚖️','DIJKSTRA CHALLENGE',`Find shortest path A → H\nOptimal cost: ${result.cost}`, 'var(--cyan)','▶ Start');
+  renderDijkstra();
+}
+
+function renderDijkstra(){
+  const canvas=document.getElementById('gameCanvas');
+  const rect=canvas.parentElement.getBoundingClientRect();
+  canvas.width=rect.width||500; canvas.height=rect.height||300;
+  const W=canvas.width, H=canvas.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'rgba(8,8,26,.95)'); bg.addColorStop(1,'rgba(2,2,10,.98)');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  const ds=dijkState;
+  const playerSet=new Set(ds.playerPath);
+  const playerEdges=new Set();
+  for(let i=0;i<ds.playerPath.length-1;i++) playerEdges.add(ds.playerPath[i]+'-'+ds.playerPath[i+1]);
+
+  // Draw edges
+  for(const e of GRAPH.edges){
+    const nu=GRAPH.nodes[e.u], nv=GRAPH.nodes[e.v];
+    const x1=nu.x*W, y1=nu.y*H, x2=nv.x*W, y2=nv.y*H;
+    const isPlayer=playerEdges.has(e.u+'-'+e.v)||playerEdges.has(e.v+'-'+e.u);
+    const isOptimal=ds.done&&ds.optimalPath.some((p,i)=>i<ds.optimalPath.length-1&&((ds.optimalPath[i]===e.u&&ds.optimalPath[i+1]===e.v)||(ds.optimalPath[i]===e.v&&ds.optimalPath[i+1]===e.u)));
+
+    ctx.strokeStyle = isPlayer ? (ds.done?'#00ffaa':'#00f0ff') : isOptimal?'rgba(0,255,170,.4)':'rgba(255,255,255,.1)';
+    ctx.lineWidth = isPlayer ? 3 : 1.5;
+    ctx.shadowColor = isPlayer ? (ds.done?'#00ffaa':'#00f0ff') : 'transparent';
+    ctx.shadowBlur  = isPlayer ? 10 : 0;
+    ctx.setLineDash(isOptimal&&!isPlayer?[4,4]:[]);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.shadowBlur=0; ctx.setLineDash([]);
+
+    // Weight label
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    ctx.fillStyle='rgba(8,8,26,.85)';
+    ctx.fillRect(mx-11,my-9,22,16);
+    ctx.fillStyle = isPlayer?'#ffd700':'#445566';
+    ctx.font='bold 10px Share Tech Mono'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(e.w,mx,my);
+  }
+
+  // Draw nodes
+  const nodeR = Math.min(W,H)*0.055;
+  dijkState._nodeAreas={};
+
+  for(const [k,node] of Object.entries(GRAPH.nodes)){
+    const nx=node.x*W, ny=node.y*H;
+    const isSrc=k===ds.src, isDst=k===ds.dst;
+    const isInPath=playerSet.has(k);
+    const isCurrent=ds.playerPath[ds.playerPath.length-1]===k;
+    const isConnected=!ds.done&&gameActive&&!isInPath&&ADJ[ds.playerPath[ds.playerPath.length-1]]&&ADJ[ds.playerPath[ds.playerPath.length-1]][k]!==undefined;
+
+    let fillColor='#0d0d22', strokeColor='#2a2a60', strokeW=1.5;
+    if(isSrc)         { fillColor='#00f0ff'; strokeColor='#00f0ff'; }
+    else if(isDst)    { fillColor='#00ffaa'; strokeColor='#00ffaa'; }
+    else if(isCurrent){ fillColor='#ffd700'; strokeColor='#ffd700'; }
+    else if(isInPath) { fillColor='#c084fc'; strokeColor='#c084fc'; }
+    else if(isConnected){ strokeColor='#445566'; strokeW=2; }
+
+    ctx.shadowColor = (isSrc||isDst||isCurrent) ? strokeColor : 'transparent';
+    ctx.shadowBlur  = (isSrc||isDst||isCurrent) ? 16 : 0;
+    ctx.fillStyle   = fillColor;
+    ctx.beginPath(); ctx.arc(nx,ny,nodeR,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=strokeColor; ctx.lineWidth=strokeW;
+    ctx.beginPath(); ctx.arc(nx,ny,nodeR,0,Math.PI*2); ctx.stroke();
+    ctx.shadowBlur=0;
+
+    // Node label
+    ctx.fillStyle=(isSrc||isDst)?'#000':(isCurrent?'#000':'#fff');
+    ctx.font=`bold ${Math.max(11,nodeR*.55)}px Orbitron`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(k,nx,ny);
+
+    // Known dist label (small, below)
+    if(!isSrc){
+      const d=ds.allDist[k];
+      ctx.fillStyle='#ffd700'; ctx.font='9px Share Tech Mono';
+      ctx.textBaseline='alphabetic';
+      ctx.fillText(d===Infinity?'∞':d, nx, ny+nodeR+13);
+    }
+
+    // Connected hint
+    if(isConnected){
+      const w=ADJ[ds.playerPath[ds.playerPath.length-1]][k];
+      ctx.fillStyle='#445566'; ctx.font='9px Share Tech Mono'; ctx.textBaseline='alphabetic';
+      ctx.fillText('+'+w, nx, ny-nodeR-3);
+    }
+
+    dijkState._nodeAreas[k]={nx,ny,r:nodeR};
+    ctx.textBaseline='alphabetic';
+  }
+
+  // Status bar
+  const curNode=ds.playerPath[ds.playerPath.length-1];
+  const curCost=ds.allDist[ds.src]===0 ? calcPathCost(ds.playerPath) : calcPathCost(ds.playerPath);
+
+  ctx.font='bold 11px Orbitron'; ctx.textAlign='left';
+  ctx.fillStyle='#00f0ff';
+  ctx.fillText('Path: '+ds.playerPath.join(' → '), 12, H-28);
+  ctx.fillStyle='#ffd700';
+  ctx.fillText('Cost so far: '+curCost, 12, H-12);
+  ctx.textAlign='right';
+  ctx.fillStyle='#445566';
+  ctx.fillText('Optimal: '+ds.optimalCost, W-12, H-12);
+
+  // Message
+  if(ds.message){
+    ctx.font='bold 13px Orbitron'; ctx.textAlign='center';
+    ctx.fillStyle=ds.messageColor;
+    ctx.fillText(ds.message, W/2, 22);
+  }
+}
+
+function calcPathCost(path){
+  let c=0;
+  for(let i=0;i<path.length-1;i++) c+=ADJ[path[i]][path[i+1]]||0;
+  return c;
+}
+
+function handleDijkstraClick(e){
+  if(!gameActive||dijkState.done) return;
+  const canvas=document.getElementById('gameCanvas');
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+  const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+  const areas=dijkState._nodeAreas||{};
+  for(const [k,a] of Object.entries(areas)){
+    if(Math.hypot(mx-a.nx,my-a.ny)<a.r){
+      clickNode(k); break;
+    }
+  }
+}
+
+function clickNode(k){
+  const ds=dijkState;
+  if(ds.done) return;
+  const cur=ds.playerPath[ds.playerPath.length-1];
+  if(k===cur) return;
+  if(ds.playerPath.includes(k)){ // already visited
+    ds.message='⚠ Already visited '+k+'!'; ds.messageColor='#ffd700';
+    renderDijkstra();
+    setTimeout(()=>{ ds.message=''; renderDijkstra(); },1000);
+    return;
+  }
+  if(ADJ[cur][k]===undefined){ // not connected
+    ds.message='✗ '+cur+' → '+k+' not connected!'; ds.messageColor='#ff2060';
+    lives=Math.max(0,lives-1); updateScoreboard();
+    renderDijkstra();
+    setTimeout(()=>{ ds.message=''; renderDijkstra(); },1200);
+    if(lives===0){ setTimeout(()=>showOverlay('💔','OUT OF LIVES!','Optimal path was: '+dijkState.optimalPath.join('→'),'var(--pink)','Try Again'),1300); }
+    return;
+  }
+  ds.playerPath.push(k);
+  score+=5; updateScoreboard();
+
+  if(k===ds.dst){
+    ds.done=true;
+    const cost=calcPathCost(ds.playerPath);
+    const isOpt=cost===ds.optimalCost;
+    ds.message = isOpt ? '🏆 OPTIMAL PATH! Cost='+cost : '✓ Reached! Cost='+cost+' (optimal='+ds.optimalCost+')';
+    ds.messageColor = isOpt?'#00ffaa':'#ffd700';
+    score += isOpt?200:100; updateScoreboard();
+    renderDijkstra();
+    setTimeout(()=>{
+      if(isOpt) showOverlay('🏆','OPTIMAL!','Perfect Dijkstra path! Cost='+cost,'var(--green)','Next Level →');
+      else showOverlay('✅','REACHED!',`Cost=${cost}. Optimal=${ds.optimalCost} (${ds.optimalPath.join('→')}). Try again for optimal!`,'var(--gold)','Try Again');
+    },800);
+  } else {
+    renderDijkstra();
+  }
+}
+
+function dijkstraHint(){
+  const ds=dijkState;
+  const cur=ds.playerPath[ds.playerPath.length-1];
+  const curIdx=ds.optimalPath.indexOf(cur);
+  if(curIdx>=0&&curIdx<ds.optimalPath.length-1){
+    const next=ds.optimalPath[curIdx+1];
+    document.getElementById('gameInfo').textContent=`💡 Hint: Go to ${next} next! (Cost: +${ADJ[cur][next]})`;
+  } else {
+    document.getElementById('gameInfo').textContent=`💡 Hint: Optimal path is ${ds.optimalPath.join('→')} (cost=${ds.optimalCost})`;
+  }
+}
+
+function autoDijkstra(){
+  const ds=dijkState;
+  if(ds.done) return;
+  clearTimeout(autoTimer);
+  function step(){
+    if(ds.done) return;
+    const cur=ds.playerPath[ds.playerPath.length-1];
+    const curIdx=ds.optimalPath.indexOf(cur);
+    if(curIdx>=0&&curIdx<ds.optimalPath.length-1){
+      clickNode(ds.optimalPath[curIdx+1]);
+      if(!ds.done) autoTimer=setTimeout(step,600);
+    }
+  }
+  step();
+}
+
+/* ══════════════════════════════════════════
+   SHARED GAME CONTROLS
+   ══════════════════════════════════════════ */
+function startGame(){
+  gameActive=true;
+  hideOverlay();
+  const canvas=document.getElementById('gameCanvas');
+  if(selectedAlgo==='greedy'){
+    greedyState.done=false;
+    canvas.onclick=handleGreedyClick;
+    renderGreedy();
+  } else {
+    canvas.onclick=handleDijkstraClick;
+    renderDijkstra();
+  }
+  document.getElementById('gameInfo').textContent = selectedAlgo==='greedy'
+    ? 'Click coins to reach '+greedyState.target+'¢ with fewest coins!'
+    : 'Click nodes in order to build your path from A to H!';
+}
+
+function resetGame(){
+  gameActive=false; clearTimeout(autoTimer);
+  score=0; level=1; lives=3; updateScoreboard();
+  const canvas=document.getElementById('gameCanvas');
+  canvas.onclick=null;
+  if(selectedAlgo==='greedy') setupGreedyGame();
+  else setupDijkstraGame();
+}
+
+function showOverlay(emoji,title,sub,color,btnTxt){
+  document.getElementById('msgEmoji').textContent  = emoji;
+  document.getElementById('msgTitle').textContent  = title;
+  document.getElementById('msgTitle').style.color  = color;
+  document.getElementById('msgSub').textContent    = sub;
+  document.getElementById('msgBtn').textContent    = btnTxt;
+  document.getElementById('msgBtn').style.background = color==='var(--green)'?'#00ffaa':color==='var(--gold)'?'#ffd700':color==='var(--pink)'?'#ff2060':'#00f0ff';
+  document.getElementById('msgBtn').style.color   = '#000';
+  document.getElementById('gameMsg').classList.add('show');
+}
+
+function hideOverlay(){
+  document.getElementById('gameMsg').classList.remove('show');
+  if(!gameActive) startGame();
+}
+
+/* ══════════════════════════════════════════
+   PAGE 3 — COMPLEXITY CHARTS
+   ══════════════════════════════════════════ */
+function buildPage3(){
+  const d=DATA[selectedAlgo];
+  ['p3tag'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=d.icon+' '+d.name; el.className='nav-tag '+(selectedAlgo==='greedy'?'tag-g':'tag-d'); }});
+  document.getElementById('cc1title').textContent = (selectedAlgo==='greedy'?'🤑 Greedy':'⚖️ Dijkstra')+' — Time Complexity';
+  drawTimeChart(); drawSpaceChart(); buildTable(); buildTips();
+}
+
+function drawTimeChart(){
+  const canvas=document.getElementById('chartTime');
+  const W=canvas.offsetWidth||300, H=canvas.offsetHeight||150;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  const isG=selectedAlgo==='greedy';
+  const color=isG?'#ff7040':'#00f0ff';
+  const ns=[1,2,4,8,16,32,64,128];
+  const vals=ns.map(n=>isG?n*Math.log2(n+1)+n:n*n*Math.log2(n+1)*0.5);
+  const maxV=Math.max(...vals);
+  const px=30,py=12,pw=W-px-10,ph=H-py-22;
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=py+ph*i/4;
+    ctx.beginPath(); ctx.moveTo(px,y); ctx.lineTo(px+pw,y); ctx.stroke();
+  }
+  // Y axis
+  ctx.fillStyle='#445566'; ctx.font='9px Share Tech Mono'; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let i=0;i<=4;i++){
+    const y=py+ph*i/4;
+    ctx.fillText(Math.round(maxV*(1-i/4)), px-4, y);
+  }
+
+  // Fill area
+  ctx.beginPath();
+  ns.forEach((n,i)=>{
+    const x=px+i*pw/(ns.length-1), y=py+ph-(vals[i]/maxV)*ph;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(px+pw,py+ph); ctx.lineTo(px,py+ph); ctx.closePath();
+  ctx.fillStyle=color+'18'; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ns.forEach((n,i)=>{
+    const x=px+i*pw/(ns.length-1), y=py+ph-(vals[i]/maxV)*ph;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.shadowColor=color; ctx.shadowBlur=8;
+  ctx.stroke(); ctx.shadowBlur=0;
+
+  // Dots + x labels
+  ns.forEach((n,i)=>{
+    const x=px+i*pw/(ns.length-1), y=py+ph-(vals[i]/maxV)*ph;
+    ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#445566'; ctx.font='8px Share Tech Mono'; ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText('n='+n, x, py+ph+3);
+  });
+
+  // Formula
+  ctx.fillStyle=color; ctx.font='bold 11px Share Tech Mono'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(isG?'O(n log n)':'O((V+E)logV)', px, 2);
+}
+
+function drawSpaceChart(){
+  const canvas=document.getElementById('chartSpace');
+  const W=canvas.offsetWidth||300, H=canvas.offsetHeight||150;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  const isG=selectedAlgo==='greedy';
+
+  const bars=isG
+    ?[{l:'Input',v:.3,c:'#ff7040',n:'O(n)'},{l:'Output',v:.25,c:'#ffd700',n:'O(n)'},{l:'Extra',v:.08,c:'#c084fc',n:'O(1)'},{l:'Total',v:.35,c:'#00ffaa',n:'O(n)'}]
+    :[{l:'dist[]',v:.55,c:'#00f0ff',n:'O(V)'},{l:'visited',v:.45,c:'#ff7040',n:'O(V)'},{l:'pQueue',v:.75,c:'#c084fc',n:'O(V)'},{l:'parent',v:.5,c:'#ffd700',n:'O(V)'}];
+
+  const bW=(W-40)/bars.length-8;
+  bars.forEach((bar,i)=>{
+    const x=24+i*((W-24)/bars.length);
+    const bH=bar.v*(H-50);
+    const y=H-30-bH;
+    ctx.shadowColor=bar.c; ctx.shadowBlur=8;
+    const grad=ctx.createLinearGradient(x,y,x,H-30);
+    grad.addColorStop(0,bar.c); grad.addColorStop(1,bar.c+'44');
+    ctx.fillStyle=grad;
+    ctx.beginPath(); ctx.roundRect(x,y,bW,bH,3); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#8899bb'; ctx.font='9px Share Tech Mono'; ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText(bar.l,x+bW/2,H-20);
+    ctx.fillStyle=bar.c; ctx.textBaseline='bottom';
+    ctx.fillText(bar.n,x+bW/2,y-2);
+  });
+  const isG2=selectedAlgo==='greedy';
+  ctx.fillStyle=isG2?'#ff7040':'#00f0ff'; ctx.font='bold 11px Share Tech Mono';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText(isG2?'Space: O(n) — Efficient!':'Space: O(V+E) — Graph Storage', W/2, 2);
+}
+
+function buildTable(){
+  const rows=[
+    ['Time Complexity','O(n log n)','O((V+E)logV)'],
+    ['Space Complexity','O(1) to O(n)','O(V+E)'],
+    ['Finds Shortest?','❌ Not always','✅ Always'],
+    ['Uses Heuristic?','✅ Local best','❌ No heuristic'],
+    ['Negative Edges?','⚠️ Depends','❌ Cannot handle'],
+    ['Data Structure','Array / Sort','Min-Heap / PQ'],
+    ['Backtracking?','❌ Never','✅ via Relaxation'],
+    ['Best For','Speed / approx','Exact shortest'],
+  ];
+  document.getElementById('cmpBody').innerHTML=rows.map(r=>`
+    <tr>
+      <td>${r[0]}</td>
+      <td class="val-g">${r[1]}</td>
+      <td class="val-d">${r[2]}</td>
+    </tr>`).join('');
+}
+
+function buildTips(){
+  const tips=selectedAlgo==='greedy'?[
+    {q:'What is the Greedy Choice Property?',a:'If locally optimal choices always lead to a globally optimal solution. Example: coin change with standard denominations (25,10,5,1).'},
+    {q:'When does Greedy FAIL?',a:'0/1 Knapsack — picking heaviest item first may block better combinations. Greedy picks locally best but cannot backtrack to try alternatives.'},
+    {q:'Time complexity of Greedy?',a:'Usually O(n log n) — the sorting step dominates. The greedy selection itself is O(n). Total: O(n log n).'},
+    {q:'Difference from Dynamic Programming?',a:'DP stores and reuses results of subproblems, can reconsider choices. Greedy never looks back — one pass only. DP is slower but always optimal.'},
+    {q:'Give 3 examples where Greedy works perfectly.',a:'1) Coin Change (standard coins)  2) Activity/Interval Selection  3) Huffman Encoding  4) Fractional Knapsack  5) Prim\'s/Kruskal\'s MST'},
+  ]:[
+    {q:'Why can\'t Dijkstra handle negative weights?',a:'Once a node is marked visited (finalized), we never revisit it. A negative edge discovered later could offer a cheaper path — Dijkstra would miss it permanently.'},
+    {q:'What is Relaxation in Dijkstra?',a:'If dist[u] + weight(u,v) < dist[v], we UPDATE dist[v] and parent[v]. This "relaxes" the edge — we found a cheaper way to reach v.'},
+    {q:'What data structure makes Dijkstra fast?',a:'Min-Heap (Priority Queue). Gives O(log V) for extract-minimum. Without it: O(V²). With binary heap: O((V+E)logV). With Fibonacci heap: O(V logV + E).'},
+    {q:'Difference between Dijkstra and BFS?',a:'BFS treats all edges as weight=1. Dijkstra handles arbitrary positive weights. On unweighted graphs, BFS is faster. On weighted: Dijkstra.'},
+    {q:'When to use A* instead of Dijkstra?',a:'When you have a heuristic function h(n) that estimates distance to goal. A* = Dijkstra + heuristic. Visits fewer nodes on grids. Dijkstra explores all directions equally; A* is guided.'},
+  ];
+  document.getElementById('tipsList').innerHTML=tips.map(t=>`
+    <div class="tip-item">
+      <div class="tip-q">Q: ${t.q}</div>
+      <div class="tip-a">A: ${t.a}</div>
+    </div>`).join('');
+}
+
+/* BOOT */
+window.addEventListener('load',()=>goPage(1));
+window.addEventListener('resize',()=>{
+  if(document.getElementById('page2').classList.contains('active')){
+    if(selectedAlgo==='greedy') renderGreedy();
+    else renderDijkstra();
+  }
+  if(document.getElementById('page3').classList.contains('active')){
+    setTimeout(()=>{ drawTimeChart(); drawSpaceChart(); },50);
+  }
+});
+</script>
+</body>
+</html>
